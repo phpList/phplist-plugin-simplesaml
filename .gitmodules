@@ -1,0 +1,3 @@
+[submodule "plugins/authsaml/simplesamlphp"]
+	path = plugins/authsaml/simplesamlphp
+	url = git@github.com:simplesamlphp/simplesamlphp.git
