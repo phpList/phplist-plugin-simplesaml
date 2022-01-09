@@ -4,9 +4,9 @@
 class authsaml extends phplistPlugin
 {
     public $name = 'login with SAML';
-    public $coderoot = '';
+    public $coderoot = 'authsaml';
     public $version = '0.1';
-    public $authors = 'Your Name';
+    public $authors = 'Fon E. Noel Nfebe, Michiel Dethmers ';
     public $enabled = 1;
     public $authProvider = true;
     public $description = 'Login to phpList with SAML';
