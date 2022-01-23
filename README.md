@@ -131,3 +131,10 @@ $metadata['https://sso.phplist.com:8443/auth/realms/master'] = [
     'certData' => 'CERT_STRING_',
 ];
 ```
+
+---
+
+## Bottlenecks
+
+- `simplesamlphp` requires at least `php-7.4`, phplist 3 accepts, `php-7.0`, `php-7.1`, `php-7.2`, `php-7.3`.
+
