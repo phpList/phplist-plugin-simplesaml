@@ -163,7 +163,15 @@ class authsaml extends phplistPlugin
     public function login()
     {
         $as = new \SimpleSAML\Auth\Simple('default-sp');
-        $as->requireAuth();
+        if(isset($_COOKIE['SimpleSAML'])) {
+            $attributes = $as->getAttributes();
+            print_r($attributes);
+            var_dump($attributes);
+            // find or create user
+            // return true here!
+        } else {
+            $as->requireAuth();
+        }
         return false;
     }
 
