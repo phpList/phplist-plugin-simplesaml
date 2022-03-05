@@ -46,7 +46,7 @@ So under the clients section (https://{host.address.ext}/auth/admin/master/conso
 - **Protocol**: The `Client Protocol` dropdown is set to `saml` to avoid `Wrong protocol` error. 
 - **Signing**: The `Sign Assertions` switch is turned on, as simplesamlphp would throw `Unhandled Exception "Neither the assertion nor the response was signed."`
 - **AuthnStatement**: The `Include Authn Statement` is turned on to avoid : `Unhandled Exception "No AuthnStatement found in assertion(s)."`
-- **Valid Redirect URIs**: Set the `Valid Redirect URIs` field to point to the simplesamlphp installation for example, `saml.phplist.com`.
+- **Valid Redirect URIs**: Set the `Valid Redirect URIs` field to point to the phplist installation (with simplesamlphp plugin) for example, `saml.phplist.com` or simply `phplist.com`.
 
 
 # SimpleSAMLPHP Setup
@@ -69,7 +69,10 @@ In [phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp](phplist-plugin-sim
  * **In [phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp/config/authsources.php] the following parameters have to be set:**
 
  - **`entityID`**: The `entityID` is essentially the client ID which is specified in Keycloak or IDP
- - **`idp`**: The IDP is the indentifier for the IdP (Keycloak) wich simplesaml would connect to.
+ - **`idp`**: The IDP is the indentifier for the IdP (Keycloak) which simplesaml would connect to.
+ - **`baseurlpath`**: The `baseurlpath` refers to the base url the running `SimpleSAML` configuration. Depending on where simplesaml was installed, it could be a seperate domain such as `saml.phplist.com/` or a path like `phplist.com/simplesamlphp/`.
+
+ _**NB:** The baseurlpath (which is essentially the simplesaml installation) is where the IdP returns the SAML response after a successful login. The SAML request would then be parsed and simplesamlphp would redirect back to the phplist url that sent the request or the one set via the `RelayState` property in the config array of `authsources.php`_
 
  The config should look like:
 
@@ -87,10 +90,12 @@ $config = [
         // The entity ID of this SP.
         // Can be NULL/unset, in which case an entity ID is generated based on the metadata URL.
         'entityID' => 'account',
-
         // The entity ID of the IdP this SP should contact.
         // Can be NULL/unset, in which case the user will be shown a list of available IdPsnt.
         'idp' => 'https://sso.phplist.com:8443/auth/realms/master',
+        'baseurlpath' => 'https://saml.phplist.test/',
+        // 'RelayState' => 'http://phplist.test/lists/admin?page=login-success',
+        
 
     ],
       
@@ -138,3 +143,46 @@ $metadata['https://sso.phplist.com:8443/auth/realms/master'] = [
 
 - `simplesamlphp` requires at least `php-7.4`, phplist 3 accepts, `php-7.0`, `php-7.1`, `php-7.2`, `php-7.3`.
 
+
+## Debugging Help
+
+### Allow `simplesamlphp` work on unencrypted connections. 
+
+For 
+```bash
+Fatal error: 
+Fatal error: Uncaught SimpleSAML\Error\CriticalConfigurationError: The configuration is invalid: Setting secure cookie on plain HTTP is not allowed. in ...
+```
+
+or
+
+```bash
+SimpleSAML\Error\CriticalConfigurationError: The configuration is invalid: Setting secure cookie on plain HTTP is not allowed.
+Backtrace:
+```
+
+Change `session.cookie.secure` in `plugins/authsaml/simplesamlphp/config.php` from `true` => `false`.
+
+
+### Trusted URLS
+
+For
+```
+SimpleSAML\Error\Error: UNHANDLEDEXCEPTION
+Backtrace:
+2 www/_include.php:17 (SimpleSAML_exception_handler)
+1 vendor/symfony/error-handler/ErrorHandler.php:607 (Symfony\Component\ErrorHandler\ErrorHandler::handleException)
+0 [builtin] (N/A)
+Caused by: SimpleSAML\Error\Exception: URL not allowed: http://phplist.test/lists/admin/
+Backtrace:
+3 lib/SimpleSAML/Utils/HTTP.php:444 (SimpleSAML\Utils\HTTP::checkURLAllowed)
+2 modules/saml/www/sp/saml2-acs.php:135 (require)
+1 lib/SimpleSAML/Module.php:273 (SimpleSAML\Module::process)
+0 www/module.php:10 (N/A)
+```
+
+Add the "not allowed" domain to the list of trusted URLs in `config.php`:
+
+```
+'trusted.url.domains' => ['phplist.test'],
+```
