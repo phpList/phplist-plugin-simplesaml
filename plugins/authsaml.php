@@ -1,12 +1,17 @@
 <?php
 
-require_once('authsaml/simplesamlphp/lib/_autoload.php');
+
+require_once(__DIR__  . '/../vendor/autoload.php');
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
+define('SIMPLESAMLPHP_INSTALLTATION_PATH', $_ENV['SIMPLESAMLPHP_INSTALLTATION_PATH']);
+require_once(__DIR__ . SIMPLESAMLPHP_INSTALLTATION_PATH . 'lib/_autoload.php');;
 
 
 class authsaml extends phplistPlugin
 {
-    public $name = 'login with SAML';
-    public $coderoot = 'authsaml';
+    public $name = 'authsaml';
+    public $coderoot =  'authsaml';
     public $version = '0.1';
     public $authors = 'Fon E. Noel Nfebe, Michiel Dethmers';
     public $enabled = 1;
@@ -34,8 +39,9 @@ class authsaml extends phplistPlugin
         ),
     );
 
-    public function __construct()
+    function __construct()
     {
+        parent::__construct();
     }
 
     /**
@@ -82,78 +88,6 @@ class authsaml extends phplistPlugin
     }
 
 
-
-    /**
-     * adminName
-     * 
-     * Name of the currently logged in administrator
-     * Use for logging, eg "subscriber updated by XXXX"
-     * and to display ownership of lists
-     * 
-     * @param int $id ID of the admin
-     * 
-     * @return string;
-     */
-    public function adminName($id)
-    {
-    }
-
-    /**
-     * adminEmail
-     * 
-     * Email address of the currently logged in administrator
-     * used to potentially pre-fill the "From" field in a campaign
-     * 
-     * @param int $id ID of the admin
-     * 
-     * @return string;
-     */
-    public function adminEmail($id)
-    {
-    }
-
-    /**
-     * adminIdForEmail
-     * 
-     * Return matching admin ID for an email address
-     * used for verifying the admin email address on a Forgot Password request
-     * 
-     * @param string $email email address 
-     * 
-     * @return ID if found or false if not;
-     */
-    public function adminIdForEmail($email)
-    {
-    }
-
-    /**
-     * isSuperUser
-     * 
-     * Return whether this admin is a super-admin or not
-     * 
-     * @param int $id admin ID
-     * 
-     * @return true if super-admin false if not
-     */
-    public function isSuperUser($id)
-    {
-    }
-
-    /**
-     * listAdmins
-     * 
-     * Return array of admins in the system
-     * Used in the list page to allow assigning ownership to lists
-     * 
-     * @param none
-     * 
-     * @return array of admins
-     *    id => name
-     */
-    function listAdmins()
-    {
-    }
-
     /**
      * login
      * called on login
@@ -163,14 +97,57 @@ class authsaml extends phplistPlugin
     public function login()
     {
         $as = new \SimpleSAML\Auth\Simple('default-sp');
-        if(isset($_COOKIE['SimpleSAML'])) {
-            $attributes = $as->getAttributes();
-            print_r($attributes);
-            var_dump($attributes);
-            // find or create user
-            // return true here!
-        } else {
-            $as->requireAuth();
+        $as->requireAuth();
+        if ($as->isAuthenticated()) {
+            $user = [
+                "sp" => "default-sp",
+                "authed" => $as->isAuthenticated(),
+                "idp" => $as->getAuthData("saml:sp:IdP"),
+                "nameId" => $as->getAuthData('saml:sp:NameID')->getValue(),
+                "attributes" => $as->getAttributes(),
+            ];
+            $privileges = null;
+            $login = $user['nameId'];
+            $superuser = 1;
+
+            // see if there is an existing record
+            $admindata = Sql_Fetch_Assoc_Query(sprintf('select loginname,password,disabled,id from %s where loginname="%s"', $GLOBALS["tables"]["admin"], addslashes($login)));
+            // if not found, then we create it
+            if (!$admindata) {
+                // create a new record
+                if (!$privileges) {
+                    $privileges = serialize([
+                        'subscribers' => true,
+                        'campaigns' => true,
+                        'statistics' => true,
+                        'settings' => true
+                    ]);
+                }
+                
+                Sql_Query(sprintf(
+                    'insert into %s (loginname,namelc,created,privileges) values("%s","%s",now(),"%s")',
+                    $GLOBALS["tables"]["admin"],
+                    addslashes($login),
+                    addslashes($login),
+                    sql_escape($privileges)
+                ));
+                file_put_contents('loginname.txt', addslashes($login));
+                $admindata = Sql_Fetch_Assoc_Query(sprintf('select password,disabled,id from %s where loginname = "%s"', $GLOBALS["tables"]["admin"], addslashes($login)));
+            }
+
+
+            $_SESSION['adminloggedin'] = $_SERVER["REMOTE_ADDR"];
+            $_SESSION['logindetails'] = [
+                'adminname' => $login,
+                'id' => $admindata['id'],
+                'superuser' => $superuser
+            ];
+
+            if ($privileges) {
+                $_SESSION['privileges'] = unserialize($privileges);
+            }
+
+            return true;
         }
         return false;
     }
@@ -183,6 +160,13 @@ class authsaml extends phplistPlugin
      */
     public function logout()
     {
-        return '';
+        $_SESSION['adminloggedin'] = "";
+        $_SESSION['logindetails'] = "";
+
+        //destroy the session
+        session_destroy();
+
+        header("Location: $logout_redirect_url");
+        exit();
     }
 }
