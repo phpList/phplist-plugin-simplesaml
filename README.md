@@ -7,6 +7,7 @@ SimpleSaml plugin for phpList
 After `cd`-ing into the configured phpList plugin directory:
 
 - `git clone https://github.com/phpList/phplist-plugin-simplesaml.git`
+- `composer install`
 - `cp .env.example. .env`
 - Ensure `SIMPLESAMLPHP_INSTALLTATION_PATH` in `.env` is the correct relative path installation of `simplesamlphp`
 
@@ -61,7 +62,7 @@ $config = [
        // Can be NULL/unset, in which case the user will be shown a list of available IdPsnt.
        'idp' => 'https://sso.phplist.com:8443/auth/realms/master',
        'baseurlpath' => 'https://saml.phplist.test/',
-       'RelayState' => 'http://phplist.test/lists/admin?pi=authsaml',
+       'RelayState' => 'http://phplist.test/lists/admin',
        'NameIDPolicy' => [
             'Format' => 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent',
             'AllowCreate' => true

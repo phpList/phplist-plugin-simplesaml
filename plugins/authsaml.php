@@ -1,6 +1,4 @@
 <?php
-
-
 require_once(__DIR__  . '/../vendor/autoload.php');
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->load();
@@ -14,7 +12,7 @@ class authsaml extends phplistPlugin
     public $coderoot =  'authsaml';
     public $version = '0.1';
     public $authors = 'Fon E. Noel Nfebe, Michiel Dethmers';
-    public $enabled = 1;
+    public $enabled = 0;
     public $authProvider = true;
     public $description = 'Login to phpList with SAML';
     public $documentationUrl = 'https://resources.phplist.com/plugin/authsaml';
@@ -44,49 +42,6 @@ class authsaml extends phplistPlugin
         parent::__construct();
     }
 
-    /**
-     * 
-     * validateLogin, verify that the login credentials are correct
-     * 
-     * @param string $login the login field
-     * @param string $password the password
-     * 
-     * @return array 
-     *    index 0 -> false if login failed, index of the administrator if successful
-     *    index 1 -> error message when login fails
-     * 
-     * eg 
-     *    return array(5,'OK'); // -> login successful for admin 5
-     *    return array(0,'Incorrect login details'); // login failed
-     * 
-     */
-    public function validateLogin($login, $password)
-    {
-        return array(0, s("Login failed"));
-    }
-
-    /**
-     * 
-     * validateAccount, verify that the logged in admin is still valid
-     * 
-     * this allows verification that the admin still exists and is valid
-     * 
-     * @param int $id the ID of the admin as provided by validateLogin
-     * 
-     * @return array 
-     *    index 0 -> false if failed, true if successful
-     *    index 1 -> error message when validation fails
-     * 
-     * eg 
-     *    return array(1,'OK'); // -> admin valid
-     *    return array(0,'No such account'); // admin failed
-     * 
-     */
-    public function validateAccount($id)
-    {
-        return array(1, "OK");
-    }
-
 
     /**
      * login
@@ -111,7 +66,7 @@ class authsaml extends phplistPlugin
             $superuser = 1;
 
             // see if there is an existing record
-            $admindata = Sql_Fetch_Assoc_Query(sprintf('select loginname,password,disabled,id from %s where loginname="%s"', $GLOBALS["tables"]["admin"], addslashes($login)));
+            $admindata = Sql_Fetch_Assoc_Query(sprintf('select loginname,password,disabled,id,superuser,privileges from %s where loginname="%s"', $GLOBALS["tables"]["admin"], addslashes($login)));
             // if not found, then we create it
             if (!$admindata) {
                 // create a new record
@@ -123,30 +78,30 @@ class authsaml extends phplistPlugin
                         'settings' => true
                     ]);
                 }
-                
+
                 Sql_Query(sprintf(
-                    'insert into %s (loginname,namelc,created,privileges) values("%s","%s",now(),"%s")',
+                    'insert into %s (loginname,namelc,created,privileges,superuser) values("%s","%s",now(),"%s", "%d")',
                     $GLOBALS["tables"]["admin"],
                     addslashes($login),
-                    addslashes($login),
-                    sql_escape($privileges)
+                    strtolower(addslashes($login)),
+                    sql_escape($privileges),
+                    $superuser
                 ));
-                file_put_contents('loginname.txt', addslashes($login));
                 $admindata = Sql_Fetch_Assoc_Query(sprintf('select password,disabled,id from %s where loginname = "%s"', $GLOBALS["tables"]["admin"], addslashes($login)));
             }
 
+            $session = \SimpleSAML\Session::getSessionFromRequest();
+            $session->cleanup();
 
-            $_SESSION['adminloggedin'] = $_SERVER["REMOTE_ADDR"];
             $_SESSION['logindetails'] = [
                 'adminname' => $login,
                 'id' => $admindata['id'],
-                'superuser' => $superuser
+                'superuser' => $admindata['superuser']
             ];
 
-            if ($privileges) {
-                $_SESSION['privileges'] = unserialize($privileges);
+            if ($admindata['privileges']) {
+                $_SESSION['privileges'] = unserialize($admindata['privileges']);
             }
-
             return true;
         }
         return false;
@@ -160,13 +115,19 @@ class authsaml extends phplistPlugin
      */
     public function logout()
     {
-        $_SESSION['adminloggedin'] = "";
-        $_SESSION['logindetails'] = "";
-
+        $_SESSION['logindetails'] = [];
+        // unset cookies
+        if (isset($_SERVER['HTTP_COOKIE'])) {
+            $cookies = explode(';', $_SERVER['HTTP_COOKIE']);
+            foreach ($cookies as $cookie) {
+                $parts = explode('=', $cookie);
+                $name = trim($parts[0]);
+                setcookie($name, '', time() - 1000);
+                setcookie($name, '', time() - 1000, '/');
+            }
+        }
         //destroy the session
         session_destroy();
-
-        header("Location: $logout_redirect_url");
-        exit();
+        header('Location: ' . $_SERVER['HTTP_REFERER']);
     }
 }
