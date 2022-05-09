@@ -1,10 +1,4 @@
 <?php
-require_once(__DIR__  . '/../vendor/autoload.php');
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
-$dotenv->load();
-define('SIMPLESAMLPHP_INSTALLTATION_PATH', $_ENV['SIMPLESAMLPHP_INSTALLTATION_PATH']);
-require_once(__DIR__ . SIMPLESAMLPHP_INSTALLTATION_PATH . 'lib/_autoload.php');;
-
 
 class authsaml extends phplistPlugin
 {
@@ -39,6 +33,7 @@ class authsaml extends phplistPlugin
 
     function __construct()
     {
+        require_once(__DIR__ .'/simplesamlphp/lib/_autoload.php');
         parent::__construct();
     }
 

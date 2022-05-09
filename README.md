@@ -7,9 +7,7 @@ SimpleSaml plugin for phpList
 After `cd`-ing into the configured phpList plugin directory:
 
 - `git clone https://github.com/phpList/phplist-plugin-simplesaml.git`
-- `composer install`
-- `cp .env.example. .env`
-- Ensure `SIMPLESAMLPHP_INSTALLTATION_PATH` in `.env` is the correct relative path installation of `simplesamlphp`
+
 
 # SimpleSAMLPHP Setup
 
@@ -18,24 +16,35 @@ After `cd`-ing into the configured phpList plugin directory:
 - `npm install`
 - `npm run build`
 
-NB : `simplesamlphp` **MUST BE CONFIGURED ON SAME DOMAIN** as your phplist installation. Hence the right place to do the clone is in `PATH_TO_PHPLIST_INSTALLATION/public_html`
+*This plugin ships with built version of `simplesamlphp` cloned from [`https://github.com/simplesamlphp/simplesamlphp`](https://github.com/simplesamlphp/simplesamlphp).* 
+
+NB : `simplesamlphp` **MUST BE CONFIGURED ON SAME DOMAIN** as your phplist installation. Hence `phplist.domain/simplesamlphp` SHOULD point to `phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp`. 
+
+
+## Otherwise:
+
+* A symlink from `phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp` to `PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp` should work. OR; 
+* Server configuration to pass traffic from `phplist.domain/simplesamlphp` to `phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp`. OR;
+* **VERY SIMPLE: ** After following the steps in the configuration phase below simple copy the contents of `phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp` to `PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp`. 
+
+Notes: The symlink method would not work in docker and the "VERY SIMPLE" method creates some redundancy. The ideal method is to ensure that by whatever means `phplist.domain/simplesamlphp` points to `PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp`. 
 
 You might be required to manually create a `log` directory with write permissions granted, so: `mkdir log && sudo chmod -R a+rwx log`
 
 ## Configuration
 
-In `PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp` the following directories should be present.
+In `phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp` the following directories should be present.
 
 - `config`
 - `metadata`
 
 If not, you want to:
 
-- `cd PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp`
+- `cd phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp`
 - `cp -r config-templates config`
 - `cp -r metadata-templates metadata`
 
-* **In [PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp/config/authsources.php] the following parameters have to be set:**
+* **In [phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp/config/authsources.php] the following parameters have to be set:**
 
 - **`entityID`**: The `entityID` is essentially the client ID which is specified in Keycloak or IDP
 - **`idp`**: The IDP is the indentifier for the IdP (Keycloak) which simplesaml would connect to.
@@ -77,7 +86,7 @@ $config = [
 ];
 ```
 
-- **In [PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp/config/config.php] the following parameters have to be set:**
+- **In [phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp/config/config.php] the following parameters have to be set:**
 
 * **`baseurlpath`**: The `baseurlpath` refers to the base url the running `SimpleSAML` configuration. Depending on where simplesaml was installed, it could be a seperate domain such as `phplist.com/simplesamlphp/www` or a path like `phplist.com/admin/simplesamlphp/www`.
 
