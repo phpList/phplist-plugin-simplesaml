@@ -6,50 +6,27 @@ SimpleSaml plugin for phpList
 
 After `cd`-ing into the configured phpList plugin directory:
 
-- `git clone https://github.com/phpList/phplist-plugin-simplesaml.git`
-
-
-# SimpleSAMLPHP Setup
-
-- `cd phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp`
-- `composer install`
-- `npm install`
-- `npm run build`
-
-*This plugin ships with built version of `simplesamlphp` cloned from [`https://github.com/simplesamlphp/simplesamlphp`](https://github.com/simplesamlphp/simplesamlphp).* 
-
-NB : `simplesamlphp` **MUST BE CONFIGURED ON SAME DOMAIN** as your phplist installation. Hence `phplist.domain/simplesamlphp` SHOULD point to `phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp`. 
-
-
-## Otherwise:
-
-* A symlink from `phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp` to `PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp` should work. OR; 
-* Server configuration to pass traffic from `phplist.domain/simplesamlphp` to `phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp`. OR;
-* **VERY SIMPLE: ** After following the steps in the configuration phase below simple copy the contents of `phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp` to `PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp`. 
-
-Notes: The symlink method would not work in docker and the "VERY SIMPLE" method creates some redundancy. The ideal method is to ensure that by whatever means `phplist.domain/simplesamlphp` points to `PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp`. 
-
-You might be required to manually create a `log` directory with write permissions granted, so: `mkdir log && sudo chmod -R a+rwx log`
+1) `git clone https://github.com/phpList/phplist-plugin-simplesaml.git`
 
 ## Configuration
 
-In `phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp` the following directories should be present.
+In `phplist-plugin-simplesaml/plugins/simplesaml/simplesamlphp` the following directories should be present.
 
 - `config`
 - `metadata`
 
 If not, you want to:
 
-- `cd phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp`
+- `cd phplist-plugin-simplesaml/plugins/simplesaml/simplesamlphp`
 - `cp -r config-templates config`
 - `cp -r metadata-templates metadata`
 
-* **In [phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp/config/authsources.php] the following parameters have to be set:**
+* **In [phplist-plugin-simplesaml/plugins/simplesaml/simplesamlphp/config/authsources.php] the following parameters have to be set:**
 
 - **`entityID`**: The `entityID` is essentially the client ID which is specified in Keycloak or IDP
-- **`idp`**: The IDP is the indentifier for the IdP (Keycloak) which simplesaml would connect to.
+- **`idp`**: The IDP is the identifier for the IdP (Keycloak) which simplesaml would connect to.
 - **`RelayState`**: The `RelayState` specifies where `simplesamlphp` should redirect to after a successful authentication. Basically it's like a callback url. This should simply be the URL from which the authentication started. Hence, a 'redirect back'.
-- **`NameIDPolicy`**: The IdP is expected to return a `NameID` every successful auth session, this name ID is what identifies the user. Depending on the IdP this `NameID` might change every session. That makes it impossible to tract the user accross session. So we have to said the `NameIDPolicy` to `persistent` essentially telling the IdP to send thesame `NameID` all the time for the same user.
+- **`NameIDPolicy`**: The IdP is expected to return a `NameID` every successful auth session, this name ID is what identifies the user. Depending on the IdP this `NameID` might change every session. That makes it impossible to tract the user across session. So we have to said the `NameIDPolicy` to `persistent` essentially telling the IdP to send the same `NameID` all the time for the same user.
 
 The`authsources.php` should look like:
 
@@ -86,9 +63,9 @@ $config = [
 ];
 ```
 
-- **In [phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp/config/config.php] the following parameters have to be set:**
+- **In [phplist-plugin-simplesaml/plugins/simplesaml/simplesamlphp/config/config.php] the following parameters have to be set:**
 
-* **`baseurlpath`**: The `baseurlpath` refers to the base url the running `SimpleSAML` configuration. Depending on where simplesaml was installed, it could be a seperate domain such as `phplist.com/simplesamlphp/www` or a path like `phplist.com/admin/simplesamlphp/www`.
+* **`baseurlpath`**: The `baseurlpath` refers to the base url the running `SimpleSAML` configuration. Depending on where simplesaml was installed, it could be a separate domain such as `phplist.com/simplesamlphp/www` or a path like `phplist.com/admin/simplesamlphp/www`.
 
 _**NB:** The baseurlpath (which is essentially the simplesaml installation) is where the IdP returns the SAML response after a successful login. The SAML request would then be parsed and simplesamlphp would redirect back to the phplist url that sent the request or the one set via the `RelayState` property in the config array of `authsources.php`_ within the config dir.
 
@@ -108,7 +85,7 @@ $config = [
 ];
 ```
 
-- **In [phplist-plugin-simplesaml/plugins/authsaml/simplesamlphp/metadata/saml20-idp-remote.php] metadata about the IdP has to be provided:**
+- **In [phplist-plugin-simplesaml/plugins/simplesaml/simplesamlphp/metadata/saml20-idp-remote.php] metadata about the IdP has to be provided:**
 
 * **Metadata array**: The metadata should be assigned to `$metadata['id']` (where id is the idp identifier passed to `idp` paramater in the config above!)
 * **SingleSignOnService**: The keycloak endpoint to send login requests to.
@@ -133,9 +110,35 @@ $metadata['https://sso.phplist.com:8443/auth/realms/master'] = [
 ];
 ```
 
+2) Set up `phplist.domain/simplesamlphp` to point to `phplist-plugin-simplesaml/plugins/simplesaml/simplesamlphp`
+
+
+## Ways to configure 2) above:
+
+* **VERY SIMPLE: ** After following the steps in the configuration phase above, simply copy the contents of `phplist-plugin-simplesaml/plugins/simplesaml/simplesamlphp` to `PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp`. OR;
+* A symlink from `phplist-plugin-simplesaml/plugins/simplesaml/simplesamlphp` to `PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp` should work. OR; 
+* Server configuration to pass traffic from `phplist.domain/simplesamlphp` to `phplist-plugin-simplesaml/plugins/simplesaml/simplesamlphp`. 
+
+
+Notes: The symlink method would not work in docker and the "VERY SIMPLE" method creates some redundancy. However the goal is that, by whatever means `phplist.domain/simplesamlphp` points to `PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp`. 
+
+You might be required to manually create a `log` directory inside `PATH_TO_PHPLIST_INSTALLATION/public_html/simplesamlphp` with write permissions granted, so: `mkdir log && sudo chmod -R a+rwx log`
+
+**NB**: `simplesamlphp` **MUST BE CONFIGURED ON SAME DOMAIN** as your phplist installation. Hence `phplist.domain/simplesamlphp` SHOULD point to `phplist-plugin-simplesaml/plugins/simplesaml/simplesamlphp`. 
+
+
+# UPDATING SimpleSAMLPHP [Developer Instructions]
+
+- Download new version of `simplesamlphp` from their [official website](https://simplesamlphp.org/download/)
+- Unzip it and rename the folder to `simplesamlphp`, delete existing `simplesaml/simplesamlphp` and replace with the newly downloaded folder.
+- Git commit it with the version number like "Added simplesamlphp-1.19.5"
+
+
+*This plugin ships with built version of `simplesamlphp` cloned from [`https://github.com/simplesamlphp/simplesamlphp`](https://github.com/simplesamlphp/simplesamlphp).* 
+
 ## Configuring the IdP
 
-[Keycloak](https://www.keycloak.org/) is used as the IdP in this setup. Any other IdP may be used as long as the correct configuration is set in the [simplesamlphp config](plugins/authsaml/simplesamlphp/config) and [simplesamlphp metadata](plugins/authsaml/simplesamlphp/metadata) directories.
+[Keycloak](https://www.keycloak.org/) is used as the IdP in this setup. Any other IdP may be used as long as the correct configuration is set in the [simplesamlphp config](plugins/simplesaml/simplesamlphp/config) and [simplesamlphp metadata](plugins/simplesaml/simplesamlphp/metadata) directories.
 
 ### Preparing IdP Server (Keycloak)
 
@@ -190,7 +193,7 @@ SimpleSAML\Error\CriticalConfigurationError: The configuration is invalid: Setti
 Backtrace:
 ```
 
-Change `session.cookie.secure` in `plugins/authsaml/simplesamlphp/config.php` from `true` => `false`.
+Change `session.cookie.secure` in `plugins/simplesaml/simplesamlphp/config.php` from `true` => `false`.
 
 ### Trusted URLS
 
