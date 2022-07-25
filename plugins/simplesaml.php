@@ -33,7 +33,9 @@ class simplesaml extends phplistPlugin
 
     function __construct()
     {
-        require_once(__DIR__ .'/simplesaml/simplesamlphp/lib/_autoload.php');
+        if ( version_compare(PHP_VERSION, '7.4.0') >= 0) {
+            require_once(__DIR__ .'/simplesaml/simplesamlphp/lib/_autoload.php');
+        }
         parent::__construct();
     }
 
@@ -268,6 +270,9 @@ class simplesaml extends phplistPlugin
 
     public function dependencyCheck()
     {
+        if ( version_compare(PHP_VERSION, '7.4.0') < 0) {
+                return array('PHP version 7.4 or up' ,false);
+        }
 
         $allowEnable = false;
         if (@is_file(__DIR__).'/simplesaml/simplesamlphp/config/config.php') {
