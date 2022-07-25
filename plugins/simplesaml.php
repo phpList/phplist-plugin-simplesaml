@@ -265,4 +265,21 @@ class simplesaml extends phplistPlugin
         session_destroy();
         header('Location: ' . $_SERVER['HTTP_REFERER']);
     }
+
+    public function dependencyCheck()
+    {
+
+        $allowEnable = false;
+        if (@is_file(__DIR__).'/simplesaml/simplesamlphp/config/config.php') {
+          include __DIR__.'/simplesaml/simplesamlphp/config/config.php';
+          $allowEnable = $config['secretsalt'] != 'defaultsecretsalt' && 
+            $config['auth.adminpassword'] != '123'
+          ;
+        }
+
+        return array(
+            'Simplesaml Configured' => $allowEnable,
+            'phpList version 3.6.7 or later' => version_compare(VERSION, '3.6.7') >= 0,
+        );
+    }
 }
