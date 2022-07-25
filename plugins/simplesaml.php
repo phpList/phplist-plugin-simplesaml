@@ -271,7 +271,7 @@ class simplesaml extends phplistPlugin
     public function dependencyCheck()
     {
         if ( version_compare(PHP_VERSION, '7.4.0') < 0) {
-                return array('PHP version 7.4 or up' ,false);
+                return array('PHP version 7.4 or up'  => false);
         }
 
         $allowEnable = false;
